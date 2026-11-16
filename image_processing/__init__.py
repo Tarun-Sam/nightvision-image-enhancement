@@ -14,6 +14,16 @@ from .enhancement import (
     apply_gamma_correction,
     apply_contrast_stretching,
 )
+from .pipeline import (
+    enhance_image,
+    ALLOWED_DENOISE_METHODS,
+)
+from .evaluation import (
+    calculate_mse,
+    calculate_psnr,
+    calculate_ssim,
+    evaluate_image,
+)
 
 __all__ = [
     # Spatial domain filters
@@ -26,4 +36,12 @@ __all__ = [
     "apply_clahe",
     "apply_gamma_correction",
     "apply_contrast_stretching",
+    # Pipeline
+    "enhance_image",
+    "ALLOWED_DENOISE_METHODS",
+    # Evaluation metrics
+    "calculate_mse",
+    "calculate_psnr",
+    "calculate_ssim",
+    "evaluate_image",
 ]

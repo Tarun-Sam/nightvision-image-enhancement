@@ -1,0 +1,7 @@
+Configuration,Average_MSE,Average_PSNR_dB,Average_SSIM,Average_Time_ms
+No Denoising + Gamma,5960.93,11.51,0.4416,50.28
+Mean + Gamma,5957.88,11.49,0.4311,9.12
+Median + Gamma,5984.05,11.47,0.4315,6.39
+Gaussian + Gamma,5940.38,11.51,0.4431,10.06
+Gaussian + CLAHE,6818.43,10.73,0.3906,11.03
+Gaussian + Gamma + CLAHE,4472.20,13.05,0.5514,9.87

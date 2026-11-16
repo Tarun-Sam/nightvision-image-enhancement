@@ -157,8 +157,11 @@ def test_filters():
         ("Invalid kernel size (4)", lambda: apply_mean_filter(original_image, 4), ValueError),
         ("Invalid kernel size (9)", lambda: apply_gaussian_filter(original_image, 9), ValueError),
         ("Float kernel size (3.0)", lambda: apply_median_filter(original_image, 3.0), TypeError),
+        ("Boolean kernel size (True)", lambda: apply_gaussian_filter(original_image, True), TypeError),
         ("3-channel image (H, W, 3)", lambda: apply_mean_filter(np.zeros((100, 100, 3), dtype=np.uint8), 3), ValueError),
         ("Non-numpy input", lambda: apply_gaussian_filter([[1, 2], [3, 4]], 3), TypeError),
+        ("Non-uint8 input (float32)", lambda: apply_mean_filter(original_image.astype(np.float32), 3), TypeError),
+        ("Empty image array", lambda: apply_gaussian_filter(np.array([], dtype=np.uint8), 3), ValueError),
     ]
 
     for label, test_call, expected_error in validation_checks:

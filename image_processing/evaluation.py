@@ -63,6 +63,35 @@ def _validate_evaluation_inputs(
         )
 
 
+def _compute_mse(reference: np.ndarray, processed: np.ndarray) -> float:
+    """Internal MSE computation assuming already validated inputs."""
+    return float(mean_squared_error(reference, processed))
+
+
+def _compute_psnr(
+    reference: np.ndarray, processed: np.ndarray, mse_val: float = None
+) -> float:
+    """Internal PSNR computation assuming already validated inputs."""
+    if mse_val is None:
+        mse_val = _compute_mse(reference, processed)
+
+    if mse_val == 0.0:
+        return float("inf")
+
+    max_intensity = 255.0
+    return float(10.0 * math.log10((max_intensity**2) / mse_val))
+
+
+def _compute_ssim(reference: np.ndarray, processed: np.ndarray) -> float:
+    """Internal SSIM computation assuming already validated inputs."""
+    channel_axis = 2 if reference.ndim == 3 else None
+    return float(
+        structural_similarity(
+            reference, processed, channel_axis=channel_axis, data_range=255
+        )
+    )
+
+
 def calculate_mse(reference: np.ndarray, processed: np.ndarray) -> float:
     """
     Calculates the Mean Squared Error (MSE) between reference and processed images.
@@ -79,10 +108,7 @@ def calculate_mse(reference: np.ndarray, processed: np.ndarray) -> float:
         float: Calculated Mean Squared Error value (lower is closer to reference).
     """
     _validate_evaluation_inputs(reference, processed)
-
-    # Use scikit-image's mean_squared_error
-    mse_val = float(mean_squared_error(reference, processed))
-    return mse_val
+    return _compute_mse(reference, processed)
 
 
 def calculate_psnr(reference: np.ndarray, processed: np.ndarray) -> float:
@@ -103,16 +129,7 @@ def calculate_psnr(reference: np.ndarray, processed: np.ndarray) -> float:
         float: PSNR in dB (higher indicates superior reconstruction fidelity).
     """
     _validate_evaluation_inputs(reference, processed)
-
-    mse_val = calculate_mse(reference, processed)
-
-    # Identical images produce zero error -> infinite PSNR
-    if mse_val == 0.0:
-        return float("inf")
-
-    max_intensity = 255.0
-    psnr_val = 10.0 * math.log10((max_intensity**2) / mse_val)
-    return float(psnr_val)
+    return _compute_psnr(reference, processed)
 
 
 def calculate_ssim(reference: np.ndarray, processed: np.ndarray) -> float:
@@ -130,15 +147,7 @@ def calculate_ssim(reference: np.ndarray, processed: np.ndarray) -> float:
         float: SSIM score.
     """
     _validate_evaluation_inputs(reference, processed)
-
-    # Configure channel_axis: None for 2D grayscale, 2 for 3D RGB (height, width, channels)
-    channel_axis = 2 if reference.ndim == 3 else None
-
-    # data_range=255 explicitly designates the full 8-bit dynamic range
-    ssim_val = structural_similarity(
-        reference, processed, channel_axis=channel_axis, data_range=255
-    )
-    return float(ssim_val)
+    return _compute_ssim(reference, processed)
 
 
 def evaluate_image(
@@ -146,6 +155,8 @@ def evaluate_image(
 ) -> Dict[str, float]:
     """
     Computes all standard image quality metrics (MSE, PSNR, SSIM) simultaneously.
+
+    Validates inputs once and reuses intermediate calculations for efficiency.
 
     Parameters:
         reference (np.ndarray): Reference ground-truth uint8 image (2D or RGB).
@@ -156,8 +167,12 @@ def evaluate_image(
     """
     _validate_evaluation_inputs(reference, processed)
 
+    mse_val = _compute_mse(reference, processed)
+    psnr_val = _compute_psnr(reference, processed, mse_val=mse_val)
+    ssim_val = _compute_ssim(reference, processed)
+
     return {
-        "mse": calculate_mse(reference, processed),
-        "psnr": calculate_psnr(reference, processed),
-        "ssim": calculate_ssim(reference, processed),
+        "mse": mse_val,
+        "psnr": psnr_val,
+        "ssim": ssim_val,
     }

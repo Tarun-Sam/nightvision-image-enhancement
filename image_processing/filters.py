@@ -23,13 +23,16 @@ def _validate_filter_inputs(image: np.ndarray, kernel_size: int) -> None:
         kernel_size: Size of the neighborhood filter window.
 
     Raises:
-        TypeError: If image is not a numpy array or kernel_size is not an integer.
-        ValueError: If image is not 2D grayscale or kernel_size is not 3, 5, or 7.
+        TypeError: If image is not a numpy array, not uint8, or kernel_size is not an integer.
+        ValueError: If image is not 2D grayscale, empty, or kernel_size is not 3, 5, or 7.
     """
     if not isinstance(image, np.ndarray):
         raise TypeError(
             f"Expected 'image' to be a numpy.ndarray, got {type(image).__name__}."
         )
+
+    if image.size == 0:
+        raise ValueError("Input image array is empty.")
 
     if image.ndim != 2:
         raise ValueError(
@@ -37,8 +40,11 @@ def _validate_filter_inputs(image: np.ndarray, kernel_size: int) -> None:
             f"Received an array with shape {image.shape} (ndim={image.ndim})."
         )
 
-    if image.size == 0:
-        raise ValueError("Input image array is empty.")
+    if image.dtype != np.uint8:
+        raise TypeError(
+            f"Expected image data type to be uint8, got {image.dtype}. "
+            f"Convert image to uint8 before filtering."
+        )
 
     # In Python, bool is a subclass of int, so explicitly exclude booleans
     if not isinstance(kernel_size, (int, np.integer)) or isinstance(kernel_size, bool):

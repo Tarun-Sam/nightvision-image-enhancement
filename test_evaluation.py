@@ -333,6 +333,11 @@ def run_benchmark_and_comparisons():
 
     print("\n[Step 3] Benchmarking 6 processing configurations...")
 
+    # Warmup run to avoid cold-start overhead (JIT/import/memory allocation) in timing
+    if dataset_pairs:
+        _ = enhance_image(dataset_pairs[0][1], denoise_method="gaussian", kernel_size=3, gamma=0.6, use_clahe=True)
+        _ = evaluate_image(dataset_pairs[0][2], dataset_pairs[0][1])
+
     benchmark_summary = []
 
     for cfg in configurations:

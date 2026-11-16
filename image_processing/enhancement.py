@@ -14,28 +14,28 @@ import numpy as np
 
 def _validate_image_input(image: np.ndarray) -> None:
     """
-    Validates that the input image is a valid 2D grayscale numpy array.
+    Validates that the input image is a non-empty, 2D grayscale numpy array of uint8 type.
 
     Parameters:
         image: Input image array.
 
     Raises:
-        TypeError: If image is not a numpy array.
-        ValueError: If image is not 2D grayscale or is empty.
+        TypeError: If image is not a numpy array or not uint8.
+        ValueError: If image is empty or not 2D.
     """
     if not isinstance(image, np.ndarray):
         raise TypeError(
             f"Expected 'image' to be a numpy.ndarray, got {type(image).__name__}."
         )
 
+    if image.size == 0:
+        raise ValueError("Input image array is empty.")
+
     if image.ndim != 2:
         raise ValueError(
             f"Input image must be a single-channel grayscale image (2D array). "
             f"Received shape {image.shape} with {image.ndim} dimensions."
         )
-
-    if image.size == 0:
-        raise ValueError("Input image array is empty.")
 
     if image.dtype != np.uint8:
         raise TypeError(
@@ -79,7 +79,7 @@ def apply_clahe(
 
     Parameters:
         image (np.ndarray): Single-channel 2D grayscale image (uint8).
-        clip_limit (float): Threshold for contrast limiting. Default is 2.0.
+        clip_limit (float): Threshold for contrast limiting (> 0). Default is 2.0.
         tile_grid_size (tuple): Grid dimensions for local tiles (rows, cols). Default is (8, 8).
 
     Returns:
@@ -87,15 +87,23 @@ def apply_clahe(
     """
     _validate_image_input(image)
 
-    if not isinstance(clip_limit, (int, float)) or clip_limit <= 0:
+    if not isinstance(clip_limit, (int, float)) or isinstance(clip_limit, bool):
+        raise TypeError(
+            f"clip_limit must be a numeric value, got {type(clip_limit).__name__}."
+        )
+
+    if clip_limit <= 0:
         raise ValueError(
-            f"clip_limit must be a positive number, got {clip_limit}."
+            f"clip_limit must be a positive number (> 0), got {clip_limit}."
         )
 
     if (
         not isinstance(tile_grid_size, (tuple, list))
         or len(tile_grid_size) != 2
-        or not all(isinstance(dim, int) and dim > 0 for dim in tile_grid_size)
+        or not all(
+            isinstance(dim, (int, np.integer)) and not isinstance(dim, bool) and dim > 0
+            for dim in tile_grid_size
+        )
     ):
         raise ValueError(
             f"tile_grid_size must be a tuple of two positive integers, got {tile_grid_size}."
@@ -104,7 +112,7 @@ def apply_clahe(
     # Create OpenCV CLAHE instance with specified clipping and grid dimensions
     clahe = cv2.createCLAHE(
         clipLimit=float(clip_limit),
-        tileGridSize=(tile_grid_size[0], tile_grid_size[1]),
+        tileGridSize=(int(tile_grid_size[0]), int(tile_grid_size[1])),
     )
     enhanced_image = clahe.apply(image)
 
@@ -128,13 +136,19 @@ def apply_gamma_correction(image: np.ndarray, gamma: float = 0.6) -> np.ndarray:
     """
     _validate_image_input(image)
 
-    if not isinstance(gamma, (int, float)) or gamma <= 0:
-        raise ValueError(f"gamma must be a positive number, got {gamma}.")
+    if not isinstance(gamma, (int, float)) or isinstance(gamma, bool):
+        raise TypeError(f"gamma must be a numeric value, got {type(gamma).__name__}.")
+
+    if gamma <= 0:
+        raise ValueError(f"gamma must be a positive number (> 0), got {gamma}.")
 
     # Build a 256-element lookup table (LUT) for efficient pixel mapping
-    inv_gamma = float(gamma)
+    gamma_val = float(gamma)
     lut = np.array(
-        [np.clip(((i / 255.0) ** inv_gamma) * 255.0, 0, 255) for i in range(256)],
+        [
+            np.clip(np.round(((intensity / 255.0) ** gamma_val) * 255.0), 0, 255)
+            for intensity in range(256)
+        ],
         dtype=np.uint8,
     )
 
